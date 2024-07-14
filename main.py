@@ -2,9 +2,11 @@ import asyncio
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
+from tkinter import filedialog
 
-from Credentials import Credentials
+from bot_config import BotConfig
 from run import showdown
+
 
 class PokemonShowdownSimulator:
     
@@ -20,51 +22,65 @@ class PokemonShowdownSimulator:
         tk.Label(self.root, image=IMAGE_BG).place(relwidth=1, relheight=1)
         
         # Main frame
-        self.frame_main = tk.Frame(self.root)
+        self.frame_main =ttk.Frame(self.root)
         tk.Label(self.frame_main, image=IMAGE_BG).place(relwidth=1, relheight=1)
         
-        # Credential fields
-        self.var_creds = [] # StringVar for Entry
-        self.creds = [Credentials, Credentials] # Credentials instances
+        # Config fields
+        self.var_bot_configs = [] # StringVar for fields
+        self.bot_configs = [BotConfig, BotConfig] # BotConfig instances
         self.frame_bot1 = self.__create_bot_fields('Bot 1')
         self.frame_bot2= self.__create_bot_fields('Bot 2')
         
+        # Start button
         self.button_start = ttk.Button(self.frame_main, text='Start', command=self.start)
         self.button_start.pack(pady=8)
         
+        # Status widgets
         self.loading = ttk.Progressbar(self.frame_main, mode='indeterminate', style='TProgressbar')
+        self.label_message = ttk.Label(self.frame_main)
         
         self.frame_main.pack(expand=True)
         self.root.mainloop()
     
     def __create_bot_fields(self, bot_name:str):
         # Create StringVar for fields
-        self.var_creds.append(
-            {
-                'username': tk.StringVar(),
-                'password': tk.StringVar()
-            }
-        )
-        cred_index = len(self.var_creds) - 1
+        self.var_bot_configs.append({
+            'username': tk.StringVar(),
+            'password': tk.StringVar(),
+            'team_file': tk.StringVar()
+            })
+        config_index = len(self.var_bot_configs) - 1
         
         # Create frame for widgets
         frame_fields = ttk.Frame(self.frame_main)
         frame_fields.pack(ipadx=8, ipady=8, pady=8)
         
-        # Create fields widgets
-        ttk.Label(frame_fields, text=bot_name).pack()
-        frame_grid = tk.Frame(frame_fields)
+        # Create widgets for credentials
+        ttk.Label(frame_fields, text=bot_name).pack(pady=(4,0))
+        frame_grid =ttk.Frame(frame_fields)
         frame_grid.pack(expand=True)
-        ttk.Label(frame_grid, text='Username:').grid(row=0, column=0, sticky=tk.E, pady=(0,8))
+        ttk.Label(frame_grid, text='Username:').grid(row=0, column=0, sticky=tk.E)
         ttk.Label(frame_grid, text='Password:').grid(row=1, column=0, sticky=tk.E)
-        ttk.Entry(frame_grid, textvariable=self.var_creds[cred_index]['username']).grid(row=0, column=1, pady=(0,8))
-        ttk.Entry(frame_grid, textvariable=self.var_creds[cred_index]['password'], show='*').grid(row=1, column=1)
+        ttk.Label(frame_grid, text='Team File:').grid(row=2, column=0, sticky=tk.E)
+        ttk.Entry(frame_grid, textvariable=self.var_bot_configs[config_index]['username']).grid(row=0, column=1, sticky=tk.EW)
+        ttk.Entry(frame_grid, textvariable=self.var_bot_configs[config_index]['password'], show='*').grid(row=1, column=1, pady=8, sticky=tk.EW)
+        
+        # Create widgets for team file
+        frame_filedialog = ttk.Frame(frame_grid)
+        frame_filedialog.grid(row=2, column=1)
+        ttk.Entry(frame_filedialog, textvariable=self.var_bot_configs[config_index]['team_file']).pack(side=tk.LEFT)
+        ttk.Button(frame_filedialog, text='Browse',
+                   command=lambda:self.__select_team_file(self.var_bot_configs[config_index]['team_file'])).pack(side=tk.RIGHT)
         
         return frame_fields
     
+    def __select_team_file(self, var:tk.StringVar):
+        filename = filedialog.askopenfilename()
+        var.set(filename)
+    
     def __set_widget_states_recursive(widget: ttk.Widget, state):
         for child in widget.winfo_children():
-            if isinstance(child, tk.Frame):
+            if isinstance(child,ttk.Frame):
                 PokemonShowdownSimulator.__set_widget_states_recursive(child, state)
             else:
                 child.configure(state=state)
@@ -74,19 +90,34 @@ class PokemonShowdownSimulator:
         PokemonShowdownSimulator.__set_widget_states_recursive(self.frame_bot1, state)
         PokemonShowdownSimulator.__set_widget_states_recursive(self.frame_bot2, state)
     
+    def show_message(self, message:str):
+        self.label_message.config(text=message)
+        self.label_message.pack(pady=8, side=tk.BOTTOM)
+    
+    def hide_message(self):
+        self.label_message.pack_forget()
+        
     def start(self):
+        # Update BotConfig object from inputs
+        for i in range(len(self.var_bot_configs)):
+            username = self.var_bot_configs[i]['username'].get()
+            password = self.var_bot_configs[i]['password'].get()
+            team_file = self.var_bot_configs[i]['team_file'].get()
+            
+            config = BotConfig(username, password, team_file)
+            if config.is_valid():
+                self.bot_configs[i] = config
+            else:
+                self.show_message("Invalid inputs. Please try again.")
+                return
+        
+        self.activate_entries(False)
+        self.hide_message()
+        
         # Change start button to loading bar
         self.button_start.pack_forget()
         self.loading.pack(fill=tk.X, pady=8)
         self.loading.start()
-        
-        self.activate_entries(False)
-        
-        # Create Credentials object from inputs
-        for i in range(len(self.var_creds)):
-            username = self.var_creds[i]['username'].get()
-            password = self.var_creds[i]['password'].get()
-            self.creds[i] = Credentials(username, password)
         
         # Instantiate bots
         threading.Thread(target=self.__start_bots).start()
@@ -117,13 +148,13 @@ class PokemonShowdownSimulator:
     
     async def __thread_defender_bot(self):
         try:
-            await showdown(self.creds[0])
+            await showdown(self.bot_configs[0])
         except Exception as e:
             raise Exception('defender_bot ERROR:\n' + str(e))
     
     async def __thread_challenger_bot(self):
         try:
-            asyncio.run(showdown(self.creds[1], self.creds[0].username))
+            await showdown(self.bot_configs[1], self.bot_configs[0].username)
         except Exception as e:
             raise Exception('challenger_bot ERROR:\n' + str(e))
 

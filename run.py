@@ -4,7 +4,7 @@ import logging
 import traceback
 from copy import deepcopy
 
-from Credentials import Credentials
+from bot_config import BotConfig
 from config import ShowdownConfig, init_logging
 
 from teams import load_team
@@ -46,7 +46,7 @@ def check_dictionaries_are_unmodified(original_pokedex, original_move_json):
         logger.debug("Pokedex JSON unmodified!")
 
 
-async def showdown(credentials:Credentials, user_to_challenge:str=None):
+async def showdown(config:BotConfig, user_to_challenge:str=None):
     init_logging(LOG_LEVEL, False)
     apply_mods(POKEMON_MODE)
 
@@ -54,8 +54,8 @@ async def showdown(credentials:Credentials, user_to_challenge:str=None):
     original_move_json = deepcopy(all_move_json)
 
     ps_websocket_client = await PSWebsocketClient.create(
-        credentials.username,
-        credentials.password,
+        config.username,
+        config.password,
         WEBSOCKET_URI
     )
     await ps_websocket_client.login()
@@ -64,7 +64,7 @@ async def showdown(credentials:Credentials, user_to_challenge:str=None):
     wins = 0
     losses = 0
     while True:
-        team = load_team("gen8/ou/clef_sand") #TODO diff team input
+        team = load_team(config.team_file)
         
         if user_to_challenge == None or user_to_challenge == "":
             await ps_websocket_client.accept_challenge(
@@ -80,7 +80,7 @@ async def showdown(credentials:Credentials, user_to_challenge:str=None):
             )
         
         winner = await pokemon_battle(ps_websocket_client, POKEMON_MODE)
-        if winner == credentials.username:
+        if winner == config.username:
             wins += 1
         else:
             losses += 1
