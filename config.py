@@ -54,13 +54,13 @@ def init_logging(level, log_to_file):
 class _ShowdownConfig:
     battle_bot_module: str
     websocket_uri: str
-    username: str
-    password: str
-    bot_mode: str
+    # username: str
+    # password: str
+    # bot_mode: str
     pokemon_mode: str
     run_count: int
-    team: str
-    user_to_challenge: str
+    # team: str
+    # user_to_challenge: str
     save_replay: bool
     room_name: str
     damage_calc_type: str
@@ -69,33 +69,34 @@ class _ShowdownConfig:
     log_handler: Union[CustomRotatingFileHandler, logging.StreamHandler]
 
     def configure(self):
-        self.battle_bot_module = env("BATTLE_BOT")
-        self.websocket_uri = env("WEBSOCKET_URI")
-        self.username = env("PS_USERNAME")
-        self.password = env("PS_PASSWORD")
-        self.bot_mode = env("BOT_MODE")
-        self.pokemon_mode = env("POKEMON_MODE")
+        self.battle_bot_module = "safest"
+        self.websocket_uri = "wss://sim3.psim.us/showdown/websocket"
+        # self.username = env("PS_USERNAME")
+        # self.password = env("PS_PASSWORD")
+        # self.bot_mode = env("BOT_MODE")
+        self.pokemon_mode = "gen8ou"
 
-        self.run_count = env.int("RUN_COUNT", 1)
-        self.team = env("TEAM_NAME", None)
-        self.user_to_challenge = env("USER_TO_CHALLENGE", None)
+        self.run_count = 1
+        # self.team = env("TEAM_NAME", None)
+        # self.user_to_challenge = env("USER_TO_CHALLENGE", None)
 
-        self.save_replay = env.bool("SAVE_REPLAY", False)
-        self.room_name = env("ROOM_NAME", None)
-        self.damage_calc_type = env("DAMAGE_CALC_TYPE", "average")
+        self.save_replay = False
+        self.room_name = None
+        self.damage_calc_type = "average"
 
-        self.log_level = env("LOG_LEVEL", "DEBUG")
-        self.log_to_file = env.bool("LOG_TO_FILE", False)
+        self.log_level = "DEBUG"
+        self.log_to_file = False
 
         self.validate_config()
 
     def validate_config(self):
-        assert self.bot_mode in constants.BOT_MODES
+        pass
+        # assert self.bot_mode in constants.BOT_MODES
 
-        if self.bot_mode == constants.CHALLENGE_USER:
-            assert self.user_to_challenge is not None, (
-                "If bot_mode is `CHALLENGE_USER, you must declare USER_TO_CHALLENGE"
-            )
+        # if self.bot_mode == constants.CHALLENGE_USER:
+        #     assert self.user_to_challenge is not None, (
+        #         "If bot_mode is `CHALLENGE_USER, you must declare USER_TO_CHALLENGE"
+        #     )
 
 
 ShowdownConfig = _ShowdownConfig()

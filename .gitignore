@@ -8,3 +8,7 @@ creds
 *.txt
 suspect_decisions.py
 teams/teams
+
+.pyarmor
+dist
+*.spec

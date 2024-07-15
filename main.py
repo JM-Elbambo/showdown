@@ -1,4 +1,6 @@
 import asyncio
+import os
+import sys
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -16,7 +18,7 @@ class PokemonShowdownSimulator:
         self.root.title('Pokemon Showdown Simulator')
         self.root.geometry('400x400')
         
-        IMAGE_BG = tk.PhotoImage(file='images/bg-starfield.png')
+        IMAGE_BG = tk.PhotoImage(file=resource_path('images/bg-starfield.png'))
         
         # Background image for root
         tk.Label(self.root, image=IMAGE_BG).place(relwidth=1, relheight=1)
@@ -130,6 +132,7 @@ class PokemonShowdownSimulator:
             
             # Start threads
             thread_defender.start()
+            asyncio.sleep(10)
             thread_challenger.start()
             
             # Wait for threads
@@ -148,7 +151,7 @@ class PokemonShowdownSimulator:
     
     async def __thread_defender_bot(self):
         try:
-            await showdown(self.bot_configs[0])
+            await showdown(self.bot_configs[0], None)
         except Exception as e:
             raise Exception('defender_bot ERROR:\n' + str(e))
     
@@ -159,5 +162,20 @@ class PokemonShowdownSimulator:
             raise Exception('challenger_bot ERROR:\n' + str(e))
 
 
+def resource_path(relative_path):
+    """ Get the absolute path to the resource, works for development and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+
 if __name__ == '__main__':
-    PokemonShowdownSimulator()
+    try:
+        PokemonShowdownSimulator()
+    except Exception as e:
+        print("Error:\n" + str(e))
+        input()

@@ -15,12 +15,6 @@ from data import all_move_json
 from data import pokedex
 from data.mods.apply_mods import apply_mods
 
-
-POKEMON_MODE = "gen8ou"
-LOG_LEVEL = "INFO"
-WEBSOCKET_URI = "wss://sim3.psim.us/showdown/websocket"
-RUN_COUNT = 1
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +41,9 @@ def check_dictionaries_are_unmodified(original_pokedex, original_move_json):
 
 
 async def showdown(config:BotConfig, user_to_challenge:str=None):
-    init_logging(LOG_LEVEL, False)
-    apply_mods(POKEMON_MODE)
+    ShowdownConfig.configure()
+    init_logging(ShowdownConfig.log_level, False)
+    apply_mods(ShowdownConfig.pokemon_mode)
 
     original_pokedex = deepcopy(pokedex)
     original_move_json = deepcopy(all_move_json)
@@ -56,7 +51,7 @@ async def showdown(config:BotConfig, user_to_challenge:str=None):
     ps_websocket_client = await PSWebsocketClient.create(
         config.username,
         config.password,
-        WEBSOCKET_URI
+        ShowdownConfig.websocket_uri
     )
     await ps_websocket_client.login()
 
@@ -68,18 +63,18 @@ async def showdown(config:BotConfig, user_to_challenge:str=None):
         
         if user_to_challenge == None or user_to_challenge == "":
             await ps_websocket_client.accept_challenge(
-                POKEMON_MODE,
+                ShowdownConfig.pokemon_mode,
                 team,
                 None
             )
         else:
             await ps_websocket_client.challenge_user(
                 user_to_challenge,
-                POKEMON_MODE,
+                ShowdownConfig.pokemon_mode,
                 team
             )
         
-        winner = await pokemon_battle(ps_websocket_client, POKEMON_MODE)
+        winner = await pokemon_battle(ps_websocket_client, ShowdownConfig.pokemon_mode)
         if winner == config.username:
             wins += 1
         else:
@@ -89,7 +84,7 @@ async def showdown(config:BotConfig, user_to_challenge:str=None):
         check_dictionaries_are_unmodified(original_pokedex, original_move_json)
 
         battles_run += 1
-        if battles_run >= RUN_COUNT:
+        if battles_run >= ShowdownConfig.run_count:
             break
 
 
