@@ -65,7 +65,7 @@ class _ShowdownConfig:
     def configure(self):
         self.battle_bot_module = "safest"
         self.websocket_uri = "wss://sim3.psim.us/showdown/websocket"
-        self.pokemon_mode = "gen8ou"
+        self.pokemon_mode = "gen8anythinggoes"
 
         self.save_replay = False
         self.room_name = None
