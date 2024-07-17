@@ -54,38 +54,27 @@ async def showdown(config:BotConfig, user_to_challenge:str=None):
         ShowdownConfig.websocket_uri
     )
     await ps_websocket_client.login()
+    
+    # Perform 1 battle
+    team = load_team(config.team_file)
+    
+    if user_to_challenge == None or user_to_challenge == "":
+        await ps_websocket_client.accept_challenge(
+            ShowdownConfig.pokemon_mode,
+            team,
+            None
+        )
+    else:
+        await ps_websocket_client.challenge_user(
+            user_to_challenge,
+            ShowdownConfig.pokemon_mode,
+            team
+        )
+    
+    winner = await pokemon_battle(ps_websocket_client, ShowdownConfig.pokemon_mode)
 
-    battles_run = 0
-    wins = 0
-    losses = 0
-    while True:
-        team = load_team(config.team_file)
-        
-        if user_to_challenge == None or user_to_challenge == "":
-            await ps_websocket_client.accept_challenge(
-                ShowdownConfig.pokemon_mode,
-                team,
-                None
-            )
-        else:
-            await ps_websocket_client.challenge_user(
-                user_to_challenge,
-                ShowdownConfig.pokemon_mode,
-                team
-            )
-        
-        winner = await pokemon_battle(ps_websocket_client, ShowdownConfig.pokemon_mode)
-        if winner == config.username:
-            wins += 1
-        else:
-            losses += 1
-
-        logger.info("W: {}\tL: {}".format(wins, losses))
-        check_dictionaries_are_unmodified(original_pokedex, original_move_json)
-
-        battles_run += 1
-        if battles_run >= ShowdownConfig.run_count:
-            break
+    logger.info(winner, "won!")
+    check_dictionaries_are_unmodified(original_pokedex, original_move_json)
 
 
 if __name__ == "__main__":
