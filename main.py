@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 import threading
@@ -11,6 +12,7 @@ from run import showdown
 
 
 class PokemonShowdownSimulator:
+    CONFIG_FILE = "config.dat"
     
     def __init__(self):
         # Create the main window
@@ -19,6 +21,8 @@ class PokemonShowdownSimulator:
         self.root.geometry('400x400')
         
         IMAGE_BG = tk.PhotoImage(file=resource_path('images/bg-starfield.png'))
+        self.var_bot_configs = [] # StringVar for fields
+        self.var_remember = tk.IntVar()
         
         # Background image for root
         tk.Label(self.root, image=IMAGE_BG).place(relwidth=1, relheight=1)
@@ -28,14 +32,22 @@ class PokemonShowdownSimulator:
         tk.Label(self.frame_main, image=IMAGE_BG).place(relwidth=1, relheight=1)
         
         # Config fields
-        self.var_bot_configs = [] # StringVar for fields
         self.bot_configs = [BotConfig, BotConfig] # BotConfig instances
         self.frame_bot1 = self.__create_bot_fields('Bot 1')
         self.frame_bot2= self.__create_bot_fields('Bot 2')
         
+        # Load saved config if exists
+        self.__load_config()
+        
+        self.frame_footer = ttk.Frame(self.frame_main)
+        self.frame_footer.pack(fill=tk.BOTH, pady=8, ipadx=32)
+        
+        # Remember checkbutton
+        ttk.Label(self.frame_footer, text="Remember Config: ").pack(side=tk.LEFT)
+        ttk.Checkbutton(self.frame_footer, variable=self.var_remember).pack(side=tk.LEFT)
+        
         # Start button
-        self.button_start = ttk.Button(self.frame_main, text='Start', command=self.start)
-        self.button_start.pack(pady=8)
+        ttk.Button(self.frame_footer, text='Start', command=self.start).pack(side=tk.RIGHT)
         
         # Status widgets
         self.loading = ttk.Progressbar(self.frame_main, mode='indeterminate', style='TProgressbar')
@@ -117,9 +129,11 @@ class PokemonShowdownSimulator:
         self.hide_message()
         
         # Change start button to loading bar
-        self.button_start.pack_forget()
+        self.frame_footer.pack_forget()
         self.loading.pack(fill=tk.X, pady=8)
         self.loading.start()
+        
+        self.__save_config()
         
         # Instantiate bots
         threading.Thread(target=self.__start_bots).start()
@@ -145,7 +159,7 @@ class PokemonShowdownSimulator:
         # Change loading bar to start button
         self.loading.stop()
         self.loading.pack_forget()
-        self.button_start.pack(pady=8)
+        self.frame_footer.pack(pady=8)
         
         self.activate_entries(True)
     
@@ -161,6 +175,37 @@ class PokemonShowdownSimulator:
         except Exception as e:
             raise Exception('challenger_bot ERROR:\n' + str(e))
 
+    def __save_config(self):
+        if self.var_remember.get() == 1:
+            data = []
+            for i in range(len(self.bot_configs)):
+                data.append({
+                    "username": self.bot_configs[i].username,
+                    "password": self.bot_configs[i].password,
+                    "team_file": self.bot_configs[i].team_file
+                })
+            with open(PokemonShowdownSimulator.CONFIG_FILE, 'w') as file:
+                json.dump(data, file)
+        # Delete if exists
+        else:
+            if os.path.exists(PokemonShowdownSimulator.CONFIG_FILE):
+                os.remove(PokemonShowdownSimulator.CONFIG_FILE)
+    
+    def __load_config(self):
+        try:
+            if os.path.exists(PokemonShowdownSimulator.CONFIG_FILE):
+                with open(PokemonShowdownSimulator.CONFIG_FILE, 'r') as file:
+                    data = json.load(file)
+                    
+                    # Load data into fields
+                    for i in range(len(data)):
+                        if i < len(self.var_bot_configs):
+                            self.var_bot_configs[i]["username"].set(data[i]["username"])
+                            self.var_bot_configs[i]["password"].set(data[i]["password"])
+                            self.var_bot_configs[i]["team_file"].set(data[i]["team_file"])
+                self.var_remember.set(1)
+        except Exception as e:
+            print("Corrupted config file:", str(e))
 
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for development and for PyInstaller """
